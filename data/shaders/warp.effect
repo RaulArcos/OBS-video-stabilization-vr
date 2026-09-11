@@ -1,0 +1,62 @@
+// Rigid warp: zoom about the center, rotate, translate. The output pixel at
+// position q (pixels, center origin) samples the input at
+//     R(-rot) * (q / zoom - offset)
+// so the displayed content is the input content moved by `offset` source
+// pixels and rotated by `rot` about the center, then zoomed. No non-rigid
+// distortion is introduced.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+uniform float2 size;       // input size in pixels
+uniform float2 offset;     // correction in pixels (content displacement)
+uniform float2 cos_sin;    // (cos rot, sin rot)
+uniform float  inv_zoom;   // 1 / zoom
+uniform float  multiplier; // color multiplier for HDR canvases (1.0 for SDR)
+
+sampler_state linearSampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData v_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = v_in.uv;
+	return vert_out;
+}
+
+float2 source_uv(float2 uv)
+{
+	// output pixel position (center origin), un-zoomed into source pixel units,
+	// then minus the correction (which is expressed in source pixels)
+	float2 q = (uv - 0.5) * size * inv_zoom - offset;
+	// rotate by -rot: [c s; -s c] * q
+	float2 r = float2(cos_sin.x * q.x + cos_sin.y * q.y,
+	                  -cos_sin.y * q.x + cos_sin.x * q.y);
+	return r / size + 0.5;
+}
+
+float4 PSWarp(VertData v_in) : TARGET
+{
+	float2 uv = source_uv(v_in.uv);
+	float4 c = image.Sample(linearSampler, uv);
+	// anything outside the source (should not happen within the margin) is black
+	float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+	return float4(c.rgb * inside * multiplier, c.a);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSWarp(v_in);
+	}
+}
