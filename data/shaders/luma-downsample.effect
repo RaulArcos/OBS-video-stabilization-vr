@@ -1,0 +1,52 @@
+// Box-filtered luma downsample used to feed the CPU motion estimator.
+// Each output pixel averages a `taps` x `taps` grid of bilinear samples spaced
+// two input texels apart, which covers the whole input footprint of the output
+// pixel without aliasing.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+uniform float2 texel; // 1 / input size
+uniform int taps;     // samples per axis (>= 1)
+
+sampler_state linearSampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData v_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = v_in.uv;
+	return vert_out;
+}
+
+float4 PSLuma(VertData v_in) : TARGET
+{
+	float sum = 0.0;
+	float half_span = (taps - 1) * 0.5;
+	for (int j = 0; j < taps; j++) {
+		for (int i = 0; i < taps; i++) {
+			float2 offset = (float2(i, j) - half_span) * 2.0 * texel;
+			float3 c = image.Sample(linearSampler, v_in.uv + offset).rgb;
+			sum += dot(c, float3(0.299, 0.587, 0.114));
+		}
+	}
+	float l = sum / (taps * taps);
+	return float4(l, l, l, 1.0);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSLuma(v_in);
+	}
+}

@@ -1,0 +1,17 @@
+# build output
+/build*/
+/.deps/
+/release/
+/.cache/
+# IDE
+/.vs/
+/.vscode/
+/.idea/
+*.user
+# offline tuning artifacts
+/tools/out/
+/tools/footage/
+__pycache__/
+
+# large test footage (kept locally, not committed)
+/test.mp4
