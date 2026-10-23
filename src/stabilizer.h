@@ -68,6 +68,7 @@ struct Correction {
 	double x = 0.0;   /* px, full resolution */
 	double y = 0.0;   /* px, full resolution */
 	double rot = 0.0; /* radians, positive = x axis toward y axis (y down) */
+	double zoom = 1.0; /* uniform crop zoom; never stretches the image */
 };
 
 class Stabilizer {
@@ -88,6 +89,8 @@ public:
 
 private:
 	Correction scaled() const;
+	void update_zoom(double dt);
+	double zoom_ = 1.0;
 
 	AxisFilter fx_, fy_, fr_;
 	StabilizerParams p_;

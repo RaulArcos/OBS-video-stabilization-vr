@@ -24,10 +24,12 @@ Requires OBS Studio 31 or newer, Windows x64.
 
 | Setting | Default | Effect |
 |---|---|---|
-| Crop zoom | 5 % | Room available for corrections. 4 to 6 % works well at 1080p. |
+| Crop zoom | 5 % | Baseline crop. Dynamic crop adds up to 5 percentage points when corrections need more room, then eases back. |
 | Strength | 100 % | How much of the correction is applied. |
 | Smoothing | 0.3 s | Higher removes slower vibration, but delays the start of head turns slightly. |
 | Max roll correction | 0.4 deg | Limit for tilt correction, 0 disables it. |
+
+Near the correction boundary, outward head turns progressively pass through instead of fighting the limit. Dynamic crop uses uniform zoom (no stretching or warping); it increases immediately when needed to hide edges and returns gradually over roughly 0.8 seconds. Combined shift and roll are bounded by the crop budget. Large sudden turns can still make zoom-in visible. Bypass keeps only the baseline crop.
 
 Advanced settings (fast-motion follow, recenter time, analysis resolution, bypass, statistics logging) are available in the filter properties. If turns feel floaty, lower Smoothing. If vibration remains, raise Smoothing or Crop zoom.
 

@@ -43,6 +43,14 @@ double AxisFilter::step(double m, double dt)
 	const double a = dt / (tau + dt);
 	v_s += (m - v_s) * a;
 
+	/* Only release outward motion near the edge; leave central tremor unchanged.
+	 * Smoothstep has zero slope at both ends, avoiding a follow-mode switch. */
+	const double residual = m - v_s;
+	if (margin > 0.0 && c * residual < 0.0) {
+		const double t = std::clamp((std::fabs(c) / margin - knee) / (1.0 - knee), 0.0, 1.0);
+		v_s += residual * t * t * (3.0 - 2.0 * t);
+	}
+
 	/* cancel the non-smooth part of the motion */
 	c -= (m - v_s);
 
@@ -71,7 +79,8 @@ void Stabilizer::configure(int width, int height, const StabilizerParams &p)
 	w_ = width;
 	h_ = height;
 
-	const double zoom = std::max(1.0, p.zoom);
+	zoom_ = std::clamp(zoom_, std::max(1.0, p.zoom), std::max(1.0, p.zoom) + 0.05);
+	const double zoom = std::max(1.0, p.zoom) + 0.05;
 	const double margin_x = (1.0 - 1.0 / zoom) * width / 2.0;
 	const double margin_y = (1.0 - 1.0 / zoom) * height / 2.0;
 
@@ -99,6 +108,20 @@ void Stabilizer::reset()
 	fx_.reset();
 	fy_.reset();
 	fr_.reset();
+	zoom_ = std::max(1.0, p_.zoom);
+}
+
+/* Exact coverage for the inverse rigid transform used by warp.effect. */
+static double required_zoom(const Correction &c, int width, int height)
+{
+	const double co = std::cos(c.rot), si = std::sin(c.rot);
+	const double dx = std::fabs(co * c.x + si * c.y);
+	const double dy = std::fabs(-si * c.x + co * c.y);
+	const double avail_x = width - 2.0 * dx, avail_y = height - 2.0 * dy;
+	if (avail_x <= 0.0 || avail_y <= 0.0)
+		return 1e9;
+	return std::max((std::fabs(co) * width + std::fabs(si) * height) / avail_x,
+			(std::fabs(si) * width + std::fabs(co) * height) / avail_y);
 }
 
 Correction Stabilizer::scaled() const
@@ -107,7 +130,37 @@ Correction Stabilizer::scaled() const
 	c.x = fx_.c * p_.strength;
 	c.y = fy_.c * p_.strength;
 	c.rot = fr_.c * p_.strength;
+	const double cap = std::max(1.0, p_.zoom) + 0.05;
+	if (w_ > 0 && h_ > 0 && required_zoom(c, w_, h_) > cap) {
+		/* Combined roll and translation can exhaust the same crop budget.
+		 * Reduce the rigid correction, never stretch pixels or exceed the cap. */
+		double lo = 0.0, hi = 1.0;
+		for (int i = 0; i < 32; ++i) {
+			const double mid = (lo + hi) * 0.5;
+			Correction candidate = c;
+			candidate.x *= mid;
+			candidate.y *= mid;
+			candidate.rot *= mid;
+			if (required_zoom(candidate, w_, h_) <= cap)
+				lo = mid;
+			else
+				hi = mid;
+		}
+		c.x *= lo;
+		c.y *= lo;
+		c.rot *= lo;
+	}
+	c.zoom = zoom_;
 	return c;
+}
+
+void Stabilizer::update_zoom(double dt)
+{
+	const double baseline = std::max(1.0, p_.zoom);
+	const double needed = w_ > 0 && h_ > 0 ? std::max(baseline, required_zoom(scaled(), w_, h_)) : baseline;
+	/* Immediate attack guarantees coverage; slow release avoids pumping. */
+	zoom_ = std::clamp(std::max(needed, zoom_ + (needed - zoom_) * dt / (0.8 + dt)), baseline,
+			   baseline + 0.05);
 }
 
 Correction Stabilizer::current() const
@@ -123,6 +176,7 @@ Correction Stabilizer::step(double dx, double dy, double drot, double dt)
 		fr_.step(drot, dt);
 	else
 		fr_.c = 0.0;
+	update_zoom(dt);
 	return scaled();
 }
 
@@ -131,6 +185,7 @@ Correction Stabilizer::relax(double dt)
 	fx_.relax(dt);
 	fy_.relax(dt);
 	fr_.relax(dt);
+	update_zoom(dt);
 	return scaled();
 }
 
