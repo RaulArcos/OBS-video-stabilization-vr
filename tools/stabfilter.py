@@ -45,6 +45,10 @@ class AxisFilter:
         tau = self.tau_v / (1.0 + abs(self.v_s) / self.v0)
         a = dt / (tau + dt)
         self.v_s += (m - self.v_s) * a
+        residual = m - self.v_s
+        if self.margin > 0 and self.c * residual < 0:
+            t = max(0.0, min(1.0, (abs(self.c) / self.margin - self.knee) / (1.0 - self.knee)))
+            self.v_s += residual * t * t * (3.0 - 2.0 * t)
         # cancel the non-smooth part of the motion
         self.c -= (m - self.v_s)
         # spring back toward the true position
@@ -63,6 +67,8 @@ class Stabilizer:
         self.w, self.h = width, height
         self.zoom = zoom
         self.strength = strength
+        self.current_zoom = zoom
+        zoom += 0.05
         margin_x = (1.0 - 1.0 / zoom) * width / 2.0
         margin_y = (1.0 - 1.0 / zoom) * height / 2.0
         # reserve part of the margin for rotation (corner displacement)
@@ -76,4 +82,28 @@ class Stabilizer:
         cx = self.fx.step(dx, dt) * self.strength
         cy = self.fy.step(dy, dt) * self.strength
         cr = self.fr.step(drot, dt) * self.strength
-        return cx, cy, cr
+        correction = (cx, cy, cr)
+        cap = self.zoom + 0.05
+        if self.required_zoom(correction) > cap:
+            lo, hi = 0.0, 1.0
+            for _ in range(32):
+                mid = (lo + hi) * 0.5
+                if self.required_zoom(tuple(v * mid for v in correction)) <= cap:
+                    lo = mid
+                else:
+                    hi = mid
+            correction = tuple(v * lo for v in correction)
+        needed = max(self.zoom, self.required_zoom(correction))
+        self.current_zoom = min(cap, max(needed, self.current_zoom +
+                                        (needed - self.current_zoom) * dt / (0.8 + dt)))
+        return correction
+
+    def required_zoom(self, correction):
+        x, y, rot = correction
+        co, si = math.cos(rot), math.sin(rot)
+        ax = self.w - 2 * abs(co * x + si * y)
+        ay = self.h - 2 * abs(-si * x + co * y)
+        if ax <= 0 or ay <= 0:
+            return 1e9
+        return max((abs(co) * self.w + abs(si) * self.h) / ax,
+                   (abs(si) * self.w + abs(co) * self.h) / ay)

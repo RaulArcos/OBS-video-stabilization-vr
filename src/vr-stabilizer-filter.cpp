@@ -494,7 +494,8 @@ static void vrstab_draw(vrstab_filter *f, gs_texture_t *full_tex)
 	gs_effect_set_vec2(f->p_warp_size, &size);
 	gs_effect_set_vec2(f->p_warp_offset, &offset);
 	gs_effect_set_vec2(f->p_warp_cos_sin, &cos_sin);
-	gs_effect_set_float(f->p_warp_inv_zoom, (float)(1.0 / std::max(1.0, f->zoom)));
+	const double zoom = f->bypass ? f->zoom : std::max(f->zoom, c.zoom);
+	gs_effect_set_float(f->p_warp_inv_zoom, (float)(1.0 / std::max(1.0, zoom)));
 	gs_effect_set_float(f->p_warp_multiplier, multiplier);
 
 	while (gs_effect_loop(f->warp_effect, tech))
