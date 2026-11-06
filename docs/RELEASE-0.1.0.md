@@ -31,7 +31,7 @@ Installation steps: [INSTALL.md](INSTALL.md).
 
 ## Maintainer checklist (manual, nothing publishes automatically)
 
-Needs Visual Studio with the C++ workload, CMake 3.28+, and Python 3.12+ for the packager. The `windows-x64` preset uses the Visual Studio 18 2026 generator, so it needs a matching CMake; on this project's machine that is the CMake bundled with Visual Studio. Do not install into `%ProgramData%`.
+Needs Visual Studio 2026 with the C++ workload and Windows SDK 10.0.26100, a CMake version supporting the Visual Studio 18 2026 generator (such as the CMake bundled with Visual Studio 2026), and Python 3.12+ for the packager. Run the commands in a Visual Studio 2026 Developer PowerShell so its CMake is on PATH; check `cmake --version` if another installation takes precedence. Do not install into `%ProgramData%`.
 
 - [ ] Configure and build:
   ```bash
