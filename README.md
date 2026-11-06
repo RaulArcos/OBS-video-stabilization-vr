@@ -2,9 +2,9 @@
 
 An OBS Studio video filter that cancels the small, fast head vibrations in a VR mirror window, so streams and recordings of VR games (made with iRacing in mind) stay steady. Deliberate head turns pass through; only the tremor is removed.
 
-![Unstabilized raw full field of view next to the stabilized, cropped view](docs/demo.gif)
+![Unstabilized raw full field of view above the stabilized, cropped view](docs/demo.gif)
 
-*Offline simulation of the filter on recorded gameplay, not a live OBS recording. Left: the raw, unstabilized full field of view. Right: the 0.1.0 stabilized result, which is cropped (5% baseline zoom plus dynamic zoom), so it shows slightly less of the scene.*
+*Offline simulation of the filter on recorded gameplay, not a live OBS recording. Top: the raw, unstabilized full field of view. Bottom: the 0.1.0 stabilized result as the filter intends to show it, which is cropped (5% baseline zoom plus dynamic zoom), so it shows slightly less of the scene. Both panels are full 16:9 frames; the labels sit in strips outside the video and cover none of the picture.*
 
 ## Download and install
 
@@ -41,7 +41,7 @@ Advanced settings (fast-motion follow, recenter time, analysis resolution, bypas
 
 ## Building
 
-Visual Studio 2022 or 2026 with the C++ workload and CMake 3.28 or newer. The `windows-x64` preset uses the Visual Studio 18 2026 generator, so it needs a CMake that supports it.
+Install Visual Studio 2026 with the C++ workload and Windows SDK 10.0.26100. Open **Developer PowerShell for VS 2026** and use its bundled CMake (the `windows-x64` preset requires the Visual Studio 18 2026 generator). Python 3.12+ is needed for packaging.
 
 ```bash
 cmake --preset windows-x64
@@ -51,7 +51,7 @@ cmake --install build_x64 --config RelWithDebInfo --prefix release/staging
 python tools/package_release.py
 ```
 
-Staging and packaging stay inside `release/`; nothing is installed into OBS. The full maintainer checklist is in [docs/RELEASE-0.1.0.md](docs/RELEASE-0.1.0.md).
+If `cmake --version` shows a different installation, use the CMake bundled with Visual Studio instead. Staging and packaging stay inside `release/`; nothing is installed into OBS. The full maintainer checklist is in [docs/RELEASE-0.1.0.md](docs/RELEASE-0.1.0.md).
 
 All GitHub Actions entry points are manual (`workflow_dispatch`); the single launcher is "Manual Build and Checks". Pushes, tags and pull requests do not trigger builds, and no workflow creates a GitHub release.
 

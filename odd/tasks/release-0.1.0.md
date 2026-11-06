@@ -3,17 +3,21 @@ Branch: vr-head-stabilizer. Conservative cleanup; local commits and artifacts on
 Verification: packaging subprocess tests, workflow checks, CTest/estimator checks, Windows build/staging, GIF decode and ZIP integrity; independent release verification.
 
 ## Specs
+S5: "I want to start promoting this to people as a opensource project, can you make it so the repo is as clean as posible, as intuitive as posible, easy to compile and install...easy quick and short instrcutions, and prepare a release for me to upload"
 S1: "create a GIF comparison of unstabilized and new version stabilized to add to the readme on github".
 S2: "lets start with the cleanup of the repo, preparing the release, the how to install it...the final push before a main git push".
 S3: "0.1.0 — first public release (recommended)" selected; retain buildspec version 0.1.0, prepare Windows ZIP/checksums/release notes locally.
 S4: "Conservative cleanup (recommended)" selected; preserve cross-platform build infrastructure and local footage. Earlier constraint: "everything manual, build me the things in local here".
 
 ## Tasks
+T4 [S5] Done: corrected Visual Studio/CMake prerequisites, rebuilt locally, regenerated and verified ZIP/checksum; preserved existing README/demo edits. Live OBS loading remains unverified.
 T1 [S2-S4] delegated + parent correction — done; 9 packaging tests and2 workflow tests pass. Independent S3 targeted recheck confirmed LF-only .sha256, digest and actual sha256sum -c exit0; commit 7d6f7bf. Native four-lens review approved and acknowledged. Risk: item 5 (release/CI).
 T2 [S1-S4] delegated — done; 960x296 two-panel GIF (77 frames, 6.41s, 7.06MB) decodes, labels/peak frame inspected; README/install/release notes relative links resolve; commit 60e983a. Risk: none (media/docs).
 T3 [S1-S4] parent + independent verifier — done; all S1-S4 verified, Windows build/tests/staging/package/checksum pass, targeted independent correction verified, tooling native approval acknowledged, docs assessment reviewDue=false. Evidence commits 7d6f7bf/60e983a; local review refs created. Risk: item 5 (release verification).
 
 ## Log
+L14: Resumed release preparation for S5. Preserve existing uncommitted README and demo changes; existing ZIP already matches both. System CMake 3.29 cannot load the VS 2026 generator; VS-bundled CMake 4.3 builds successfully.
+L15: Rebuilt with VS-bundled CMake 4.3.1; CTest 1/1, packaging tests 9/9 and workflow tests 2/2 pass. Repackaged current docs/demo and verified ZIP integrity, checksum and built DLL identity. ZIP SHA-256 d32bca9b3164ed84609dfe844384a103d3bccce19f2da55dea1e73158f8d402b. No live OBS load, publication, push, tag or installation performed.
 L1: "perfect, I like this new versionn, create a GIF comparison of unstabilized and new version stabilized to add to the readme on github, and lets start with the cleanup of the repo, preparing the release, the how to install it...the final push before a main git push"
 L2: User selected "0.1.0 — first public release (recommended)" and "Conservative cleanup (recommended)". No push or publishing yet.
 L3: Existing T1 stabilization commit edf1dc7 is built and tested. Existing manual-CI edits are staged, native review target sha256:6d7a80ca49fb729df31446de00b3238ba4bc4b0d2e9b6e297288fac5e41ad725 approved and acknowledged (review-981acdb2559fca8a). Earlier standalone independent verifier admission unavailable; do not misreport it as passed. New release scope receives one independent final verification, including its changed CI interactions.
